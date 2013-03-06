@@ -56,7 +56,7 @@ import java.io.IOException;
  *    also close when there is extended inactivity.
  */
 public class BluetoothHDPService extends Service {
-    private static final String TAG = "BluetoothHDPService";
+    private static final String TAG = "bp";
 
     public static final int RESULT_OK = 0;
     public static final int RESULT_FAIL = -1;
@@ -113,6 +113,7 @@ public class BluetoothHDPService extends Service {
                     break;
                 // Register health application.
                 case MSG_REG_HEALTH_APP:
+                	Log.d(TAG, "Register health application");
                     registerApp(msg.arg1);
                     break;
                 // Unregister health application.
@@ -148,6 +149,7 @@ public class BluetoothHDPService extends Service {
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             // Bluetooth adapter isn't available.  The client of the service is supposed to
             // verify that it is available and activate before invoking this service.
+        	Log.d(TAG, "Device not available, adapter null.");
             stopSelf();
             return;
         }
@@ -158,6 +160,7 @@ public class BluetoothHDPService extends Service {
             stopSelf();
             return;
         }
+        Log.d(TAG, "Bluetooth Profile (health) available");
     }
 
     @Override
@@ -242,6 +245,7 @@ public class BluetoothHDPService extends Service {
                         prevState, newState));
             if (prevState == BluetoothHealth.STATE_CHANNEL_DISCONNECTED &&
                     newState == BluetoothHealth.STATE_CHANNEL_CONNECTED) {
+            	Log.d(TAG, "+++++ state: disconnected -> connected.");
                 if (config.equals(mHealthAppConfig)) {
                     mChannelId = channelId;
                     sendMessage(STATUS_CREATE_CHANNEL, RESULT_OK);
@@ -249,10 +253,22 @@ public class BluetoothHDPService extends Service {
                 } else {
                     sendMessage(STATUS_CREATE_CHANNEL, RESULT_FAIL);
                 }
-            } else if (prevState == BluetoothHealth.STATE_CHANNEL_CONNECTING &&
+            } else if(prevState == BluetoothHealth.STATE_CHANNEL_CONNECTING &&
+                    newState == BluetoothHealth.STATE_CHANNEL_CONNECTED){
+            	Log.d(TAG, "+++++ state: connecting -> connected.");
+            	if (config.equals(mHealthAppConfig)) {
+                    mChannelId = channelId;
+                    sendMessage(STATUS_CREATE_CHANNEL, RESULT_OK);
+                    (new ReadThread(fd)).start();
+                } else {
+                    sendMessage(STATUS_CREATE_CHANNEL, RESULT_FAIL);
+                } //############ modified case
+            }else if (prevState == BluetoothHealth.STATE_CHANNEL_CONNECTING &&
                        newState == BluetoothHealth.STATE_CHANNEL_DISCONNECTED) {
+            	Log.d(TAG, "+++++ state: connecting -> disconnected.");
                 sendMessage(STATUS_CREATE_CHANNEL, RESULT_FAIL);
             } else if (newState == BluetoothHealth.STATE_CHANNEL_DISCONNECTED) {
+            	Log.d(TAG, "+++++ state: whatever -> disconnected.");
                 if (config.equals(mHealthAppConfig)) {
                     sendMessage(STATUS_DESTROY_CHANNEL, RESULT_OK);
                 } else {
@@ -295,10 +311,17 @@ public class BluetoothHDPService extends Service {
             try {
                 while(fis.read(data) > -1) {
                     // At this point, the application can pass the raw data to a parser that
-                    // has implemented the IEEE 11073-xxxxx specifications.  Instead, this sample
-                    // simply indicates that some data has been received.
+                    // has implemented1 the IEEE 11073-xxxxx specifications.  Instead, this sample
+                    // simply indicates1 that some data has been received.
+                	Log.d(TAG, "addr: "+data.toString());
+                    //String str = new String(data, "UTF-8");
+                    String str = bytesTo132Hex(data);
+                    Log.d(TAG, "Content: "+str);
+                	
                     sendMessage(STATUS_READ_DATA, 0);
                 }
+                
+                //Toast.makeText(getApplicationContext(), str, Toast.LENGTH_LONG ).show();
             } catch(IOException ioe) {}
             if (mFd != null) {
                 try {
@@ -307,5 +330,31 @@ public class BluetoothHDPService extends Service {
             }
             sendMessage(STATUS_READ_DATA_DONE, 0);
         }
+        
     }
+    
+    // method to convert byte array to hex string
+    public static String bytesToHex(byte[] bytes) {
+        final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+        char[] hexChars = new char[bytes.length * 2];
+        int v;
+        for ( int j = 0; j < bytes.length; j++ ) {
+            v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+    public static String bytesTo132Hex(byte[] bytes) {
+        final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+        char[] hexChars = new char[66 * 2];
+        int v;
+        for ( int j = 0; j < 65; j++ ) {
+            v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+    
 }

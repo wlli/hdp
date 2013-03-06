@@ -49,7 +49,7 @@ import android.widget.Toast;
  * the service.
  */
 public class BluetoothHDPActivity extends Activity {
-    private static final String TAG = "BluetoothHealthActivity";
+    private static final String TAG = "bp";
 
     // Use the appropriate IEEE 11073 data types based on the devices used.
     // Below are some examples.  Refer to relevant Bluetooth HDP specifications for detail.
@@ -147,6 +147,7 @@ public class BluetoothHDPActivity extends Activity {
             public void onClick(View v) {
                 sendMessage(BluetoothHDPService.MSG_REG_HEALTH_APP,
                         HEALTH_PROFILE_SOURCE_DATA_TYPE);
+                Log.d(TAG, "register button pressed");
             }
         });
 
@@ -155,6 +156,7 @@ public class BluetoothHDPActivity extends Activity {
         unregisterAppButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 sendMessage(BluetoothHDPService.MSG_UNREG_HEALTH_APP, 0);
+                Log.d(TAG, "unregister button pressed");
             }
         });
 
@@ -165,10 +167,11 @@ public class BluetoothHDPActivity extends Activity {
         Button connectButton = (Button) findViewById(R.id.button_connect_channel);
         connectButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+            	Log.d(TAG, "clickConnect1");
                 mAllBondedDevices =
                         (BluetoothDevice[]) mBluetoothAdapter.getBondedDevices().toArray(
                                 new BluetoothDevice[0]);
-
+                Log.d(TAG, "clickConnect2");
                 if (mAllBondedDevices.length > 0) {
                     int deviceCount = mAllBondedDevices.length;
                     if (mDeviceIndex < deviceCount) mDevice = mAllBondedDevices[mDeviceIndex];
@@ -184,6 +187,8 @@ public class BluetoothHDPActivity extends Activity {
                     SelectDeviceDialogFragment deviceDialog =
                             SelectDeviceDialogFragment.newInstance(deviceNames, mDeviceIndex);
                     deviceDialog.show(getFragmentManager(), "deviceDialog");
+                    //sendMessage(BluetoothHDPService.MSG_CONNECT_CHANNEL, 0); //#########
+                    Log.d(TAG, "connect channel #####");
                 }
             }
         });
