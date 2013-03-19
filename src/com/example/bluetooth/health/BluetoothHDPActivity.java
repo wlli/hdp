@@ -115,6 +115,9 @@ public class BluetoothHDPActivity extends Activity {
                             msg.arg1));
                     mConnectIndicator.setText(R.string.disconnected);
                     break;
+                case BluetoothHDPService.SHOW_RESULT:
+                	//do nothing here now
+                	break;
                 default:
                     super.handleMessage(msg);
             }

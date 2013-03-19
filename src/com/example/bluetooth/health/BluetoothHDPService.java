@@ -16,7 +16,9 @@
 
 package com.example.bluetooth.health;
 
+import android.provider.Settings.Secure; // for getting system-id
 import android.app.Service;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHealth;
@@ -34,6 +36,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 /**
@@ -58,6 +61,9 @@ import java.io.IOException;
 public class BluetoothHDPService extends Service {
     private static final String TAG = "bp";
 
+    byte[] sysId;
+    String result;
+    
     public static final int RESULT_OK = 0;
     public static final int RESULT_FAIL = -1;
 
@@ -88,7 +94,10 @@ public class BluetoothHDPService extends Service {
     public static final int MSG_CONNECT_CHANNEL = 400;
     // Disconnect channel.
     public static final int MSG_DISCONNECT_CHANNEL = 401;
-
+//show measurement data result
+    public static final int SHOW_RESULT = 999;
+    
+    
     private BluetoothHealthAppConfiguration mHealthAppConfig;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothHealth mBluetoothHealth;
@@ -161,6 +170,14 @@ public class BluetoothHDPService extends Service {
             return;
         }
         Log.d(TAG, "Bluetooth Profile (health) available");
+        
+        String android_id = Secure.getString(getBaseContext().getContentResolver(),
+                Secure.ANDROID_ID); 
+        Log.d(TAG, "@@@@@System-id = "+android_id);
+        sysId = new byte[8];
+        this.convertSystemId(sysId, android_id);
+        String systemId2 = bytesToHex(sysId);
+        Log.d(TAG, "@@@@@System-id2 = "+systemId2);
     }
 
     @Override
@@ -293,6 +310,12 @@ public class BluetoothHDPService extends Service {
         }
     }
 
+    int count; //#####
+    byte[] invoke = new byte[2];
+    public static final int RECEIVED_SYS = 901;
+    public static final int RECEIVED_DIA = 902;
+    public static final int RECEIVED_PUL = 903;
+    
     // Thread to read incoming data received from the HDP device.  This sample application merely
     // reads the raw byte from the incoming file descriptor.  The data should be interpreted using
     // a health manager which implements the IEEE 11073-xxxxx specifications.
@@ -307,21 +330,109 @@ public class BluetoothHDPService extends Service {
         @Override
         public void run() {
             FileInputStream fis = new FileInputStream(mFd.getFileDescriptor());
-            final byte data[] = new byte[8192];
+            final byte data[] = new byte[1000];
             try {
                 while(fis.read(data) > -1) {
                     // At this point, the application can pass the raw data to a parser that
                     // has implemented1 the IEEE 11073-xxxxx specifications.  Instead, this sample
                     // simply indicates1 that some data has been received.
-                	Log.d(TAG, "addr: "+data.toString());
-                    //String str = new String(data, "UTF-8");
+                	/*Log.d(TAG, "addr: "+data.toString());
                     String str = bytesTo132Hex(data);
-                    Log.d(TAG, "Content: "+str);
+                    Log.d(TAG, "Content: "+str);*/ //############
+                	
+                	if (data[0] != (byte) 0x00)
+                    {
+                        String test = byte2hex(data);
+                        Log.i(TAG, test);
+                        if(data[0] == (byte) 0xE2){
+                            Log.i(TAG, "E2");
+                            count = 1;
+                            (new WriteThread(mFd)).start();
+                            try {
+                                sleep(100);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            count = 2;
+                            (new WriteThread(mFd)).start();
+                        }
+                        else if (data[0] == (byte)0xE7){
+                            Log.i(TAG, "E7");
+
+                            
+                            if (data[18] == (byte) 0x0d && data[19] == (byte) 0x1f)  //fixed report
+                            {
+                                count = 3; 
+                                //set invoke id so get correct response
+                                invoke = new byte[] { data[6], data[7] };
+                                //write back response
+                                (new WriteThread(mFd)).start();     
+                                //parse data!!
+                                int systolic, diastolic, pulse;
+                                String year, month, day, hour, minute;
+                                byte byte2[] = new byte[2];
+                                byte byte1[] = new byte[1];
+                                systolic = data[45];
+                                diastolic = data[47];
+                                pulse = data[63];
+                                byte2[0] = data[50]; byte2[1] = data[51];
+                                year = bytesToHex(byte2);
+                                byte1[0] = data[52];
+                                month = bytesToHex(byte1);
+                                byte1[0] = data[53];
+                                day = bytesToHex(byte1);
+                                byte1[0] = data[54];
+                                hour = bytesToHex(byte1);
+                                byte1[0] = data[55];
+                                minute = bytesToHex(byte1);
+                                result = "*****the measured data are: Systolic = "+systolic+", Diastolic = "
+                                		+diastolic+", pulse = "+pulse+" at "+year+", "+month+", "+day+" "
+                                		+hour+":"+minute+". *****";
+                                Log.d(TAG, result);
+                                
+                            }
+                            else
+                            {
+                            	for (int i = 0; i < data.length; i++){
+                                    data[i] = (byte) 0x00;
+                                }
+                                count = 2; 
+                                fis.read(data);
+                                String test1 = byte2hex(data);
+                                Log.i(TAG, "ALL_ZERO:"+test1);
+                                
+                                
+                                
+                                try {
+                                    sleep(300);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            	/*
+                            	//###########################
+                            	count = 3; 
+                                //set invoke id so get correct response
+                                invoke = new byte[] { data[6], data[7] };
+                                //write back response
+                                (new WriteThread(mFd)).start();  
+                                */ //comment out on 20 March, early morning 
+                            }
+                        }
+                        else if (data[0] == (byte) 0xE4)
+                        {
+                            count = 4;
+                            (new WriteThread(mFd)).start();
+//                          sendMessage();
+                        }
+                        //zero out the data
+                        for (int i = 0; i < data.length; i++){
+                            data[i] = (byte) 0x00;
+                        }
+                    }
                 	
                     sendMessage(STATUS_READ_DATA, 0);
                 }
                 
-                //Toast.makeText(getApplicationContext(), str, Toast.LENGTH_LONG ).show();
             } catch(IOException ioe) {}
             if (mFd != null) {
                 try {
@@ -357,4 +468,130 @@ public class BluetoothHDPService extends Service {
         return new String(hexChars);
     }
     
+    
+    public String byte2hex(byte[] b)
+    {
+     // String Buffer can be used instead
+       String hs = "";
+       String stmp = "";
+
+       for (int n = 0; n < b.length; n++)
+       {
+          stmp = (java.lang.Integer.toHexString(b[n] & 0XFF));
+
+          if (stmp.length() == 1)
+          {
+             hs = hs + "0" + stmp;
+          }
+          else
+          {
+             hs = hs + stmp;
+          }
+
+          if (n < b.length - 1)
+          {
+             hs = hs + "";
+          }
+       }
+
+       return hs;
+    }
+
+    public static int byteToUnsignedInt(byte b) {
+        return 0x00 << 24 | b & 0xff;
+      }
+    
+    private class WriteThread extends Thread {
+        private ParcelFileDescriptor mFd;
+
+        public WriteThread(ParcelFileDescriptor fd) {
+            super();
+            mFd = fd;
+        }
+
+        @Override
+        public void run() {
+            FileOutputStream fos = new FileOutputStream(mFd.getFileDescriptor());
+            final byte data_AR[] = new byte[] {         (byte) 0xE3, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x2C, 
+                                                        (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x50, (byte) 0x79,
+                                                        (byte) 0x00, (byte) 0x26,
+                                                        (byte) 0x80, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x80, (byte) 0x00,
+                                                        (byte) 0x80, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x80, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x08,  		//bt add for phone, can be automate in the future
+                                                        sysId[0], sysId[1], sysId[2], sysId[3], 
+                                                        sysId[4], sysId[5], sysId[6], sysId[7],
+                                                        (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x00, 
+                                                        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00};
+            final byte data_DR[] = new byte[] {         (byte) 0xE7, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x12,
+                                                        (byte) 0x00, (byte) 0x10,
+                                                        (byte) invoke[0], (byte) invoke[1],
+                                                        (byte) 0x02, (byte) 0x01,
+                                                        (byte) 0x00, (byte) 0x0A,
+                                                        (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x0D, (byte) 0x1F,
+                                                        (byte) 0x00, (byte) 0x00 };
+
+            final byte get_MDS[] = new byte[] {         (byte) 0xE7, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x0E,
+                                                        (byte) 0x00, (byte) 0x0C,
+                                                        (byte) 0x4A, (byte) 0x05,//#####
+                                                        (byte) 0x01, (byte) 0x03,
+                                                        (byte) 0x00, (byte) 0x06,
+                                                        (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x00 };
+
+            final byte data_RR[] = new byte[] {         (byte) 0xE5, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x02,
+                                                        (byte) 0x00, (byte) 0x00 };
+
+            final byte data_RRQ[] = new byte[] {        (byte) 0xE4, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x02,
+                                                        (byte) 0x00, (byte) 0x00 };
+
+            final byte data_ABORT[] = new byte[] {      (byte) 0xE6, (byte) 0x00,
+                                                        (byte) 0x00, (byte) 0x02,
+                                                        (byte) 0x00, (byte) 0x00 };
+            try {
+                Log.i(TAG, String.valueOf(count));
+                if (count == 1)
+                {
+                    fos.write(data_AR);
+                    Log.i(TAG, "Association Responsed!");
+                }  
+                else if (count == 2)
+                {
+                    fos.write(get_MDS);
+                    Log.i(TAG, "Get MDS object attributes!");
+//                  fos.write(data_ABORT);
+                }
+                else if (count == 3) 
+                {
+                    fos.write(data_DR);
+                    Log.i(TAG, "Data Responsed!");
+                }
+                else if (count == 4)
+                {
+                    fos.write(data_RR);
+                    Log.i(TAG, "Association Released!");
+                }
+            } catch(IOException ioe) {}
+        }
+    }
+    
+    //utitlity method: convert system-id to byte array of 8
+    void convertSystemId(byte[] systemId, String sId){
+    	for(int i=0; i<8; i++){
+    		systemId[i] = (byte)Integer.parseInt(sId.substring(2*i, 2*i+2), 16);
+    	}
+    }
 }
