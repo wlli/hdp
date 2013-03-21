@@ -28,6 +28,7 @@
     <string name="disconnect">Disconnect</string>
     <string name="disconnected">DISCONNECTED</string>
     <string name="empty"> </string>
+    <string name="no_data">No data received yet.</string>
     <string name="none">None...</string>
     <string name="ok">Okay</string>
     <string name="read_data">Reading data...</string>

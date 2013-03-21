@@ -63,6 +63,7 @@ public class BluetoothHDPActivity extends Activity {
     private TextView mConnectIndicator;
     private ImageView mDataIndicator;
     private TextView mStatusMessage;
+    private TextView mResultMessage;
 
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothDevice[] mAllBondedDevices;
@@ -82,6 +83,7 @@ public class BluetoothHDPActivity extends Activity {
                     mStatusMessage.setText(
                             String.format(mRes.getString(R.string.status_reg),
                             msg.arg1));
+                    //mResultMessage.setText(BluetoothHDPService.result);
                     break;
                 // Application unregistration complete.
                 case BluetoothHDPService.STATUS_HEALTH_APP_UNREG:
@@ -116,7 +118,9 @@ public class BluetoothHDPActivity extends Activity {
                     mConnectIndicator.setText(R.string.disconnected);
                     break;
                 case BluetoothHDPService.SHOW_RESULT:
-                	//do nothing here now
+                	//show result in UI: (textView)mResultMessage
+                	String prev = mResultMessage.getText().toString();
+                	mResultMessage.setText(prev+"\n"+BluetoothHDPService.result);
                 	break;
                 default:
                     super.handleMessage(msg);
@@ -140,6 +144,7 @@ public class BluetoothHDPActivity extends Activity {
         setContentView(R.layout.console);
         mConnectIndicator = (TextView) findViewById(R.id.connect_ind);
         mStatusMessage = (TextView) findViewById(R.id.status_msg);
+        mResultMessage =(TextView)findViewById(R.id.result_msg);
         mDataIndicator = (ImageView) findViewById(R.id.data_ind);
         mRes = getResources();
         mHealthServiceBound = false;

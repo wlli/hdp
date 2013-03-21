@@ -23,6 +23,7 @@ public final class R {
         public static final int button_unregister_app=0x7f050001;
         public static final int connect_ind=0x7f050004;
         public static final int data_ind=0x7f050005;
+        public static final int result_msg=0x7f050007;
         public static final int status_msg=0x7f050006;
     }
     public static final class layout {
@@ -42,17 +43,18 @@ public final class R {
         public static final int disconnect=0x7f04000a;
         public static final int disconnected=0x7f04000b;
         public static final int empty=0x7f04000c;
-        public static final int none=0x7f04000d;
-        public static final int ok=0x7f04000e;
-        public static final int read_data=0x7f04000f;
-        public static final int read_data_done=0x7f040010;
-        public static final int register=0x7f040011;
-        public static final int select_device=0x7f040012;
-        public static final int status_create_channel=0x7f040013;
-        public static final int status_destroy_channel=0x7f040014;
-        public static final int status_msg=0x7f040015;
-        public static final int status_reg=0x7f040016;
-        public static final int status_unreg=0x7f040017;
-        public static final int unregister=0x7f040018;
+        public static final int no_data=0x7f04000d;
+        public static final int none=0x7f04000e;
+        public static final int ok=0x7f04000f;
+        public static final int read_data=0x7f040010;
+        public static final int read_data_done=0x7f040011;
+        public static final int register=0x7f040012;
+        public static final int select_device=0x7f040013;
+        public static final int status_create_channel=0x7f040014;
+        public static final int status_destroy_channel=0x7f040015;
+        public static final int status_msg=0x7f040016;
+        public static final int status_reg=0x7f040017;
+        public static final int status_unreg=0x7f040018;
+        public static final int unregister=0x7f040019;
     }
 }

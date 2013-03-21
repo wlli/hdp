@@ -62,7 +62,7 @@ public class BluetoothHDPService extends Service {
     private static final String TAG = "bp";
 
     byte[] sysId;
-    String result;
+    public static String result = "No measurement data to display now.";
     
     public static final int RESULT_OK = 0;
     public static final int RESULT_FAIL = -1;
@@ -94,7 +94,7 @@ public class BluetoothHDPService extends Service {
     public static final int MSG_CONNECT_CHANNEL = 400;
     // Disconnect channel.
     public static final int MSG_DISCONNECT_CHANNEL = 401;
-//show measurement data result
+//show measurement data result in UI
     public static final int SHOW_RESULT = 999;
     
     
@@ -386,9 +386,10 @@ public class BluetoothHDPService extends Service {
                                 byte1[0] = data[55];
                                 minute = bytesToHex(byte1);
                                 result = "*****the measured data are: Systolic = "+systolic+", Diastolic = "
-                                		+diastolic+", pulse = "+pulse+" at "+year+", "+month+", "+day+" "
+                                		+diastolic+", pulse = "+pulse+" at "+year+"-"+month+"-"+day+" "
                                 		+hour+":"+minute+". *****";
                                 Log.d(TAG, result);
+                                sendMessage(SHOW_RESULT, 0);
                                 
                             }
                             else
