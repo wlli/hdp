@@ -16,6 +16,25 @@
 
 package com.example.bluetooth.health;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.protocol.HTTP;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -30,6 +49,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.res.Resources;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -121,6 +141,7 @@ public class BluetoothHDPActivity extends Activity {
                 	//show result in UI: (textView)mResultMessage
                 	String prev = mResultMessage.getText().toString();
                 	mResultMessage.setText(prev+"\n"+BluetoothHDPService.result);
+                	sendToHub();
                 	break;
                 default:
                     super.handleMessage(msg);
@@ -343,6 +364,84 @@ public class BluetoothHDPActivity extends Activity {
             Log.w(TAG, "Unable to reach service.");
             e.printStackTrace();
         }
+    }
+    
+    //function to send data to bp hub
+    public void sendToHub(){
+    	Log.d(TAG, "send to bp hub after new measurement.");
+    	
+    	(new SendDataAsycTask()).execute();
+    }
+    //send function for send button
+    public void send(View view){
+    	Log.d(TAG, "send to bp hub.");
+    	
+    	(new SendDataAsycTask()).execute();
+    }
+    class SendDataAsycTask extends AsyncTask<Void,Void,String>{
+
+		@Override
+		protected String doInBackground(Void... arg0) {
+			HttpClient httpclient = new DefaultHttpClient();
+	    	HttpPost httppost = new HttpPost("https://api.mongolab.com/api/1/databases/bp/collections/measurement?apiKey=fEVne_u88CbaAX6Rv2YsnCdWIfKD5JP-");
+	    	httppost.addHeader("Content-Type","application/json");
+	    	//httppost.addHeader("url", "https://api.mongolab.com/api/1/databases/bp/collections/measurement?apiKey=fEVne_u88CbaAX6Rv2YsnCdWIfKD5JP-");
+	    	//httppost.addHeader("type", "POST");
+	    	
+	    	try {
+	    	    // Add your data
+	    		JSONObject object = new JSONObject();
+	    		  try {
+	    			  object.put("systolic", BluetoothHDPService.results[0]);
+	    			  object.put("diastolic", BluetoothHDPService.results[1]);
+	    			  object.put("pulse", BluetoothHDPService.results[2]);
+	    			  object.put("year", BluetoothHDPService.results[3]);
+	    			  object.put("month", BluetoothHDPService.results[4]);
+	    			  object.put("day", BluetoothHDPService.results[5]);
+	    			  object.put("hour", BluetoothHDPService.results[6]);
+	    			  object.put("minute", BluetoothHDPService.results[7]);
+	    		  } catch (JSONException e) {
+	    			  Log.d(TAG, e.getMessage());
+	    		  }
+	    		  
+	    		  StringEntity s = new StringEntity(object.toString());
+	    		  //s.setContentEncoding((Header)(new BasicHeader(HTTP.CONTENT_TYPE, "application/json")));
+	    		/*
+	    	    List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(8);
+	    	    nameValuePairs.add(new BasicNameValuePair("systolic", "1"));
+	    	    nameValuePairs.add(new BasicNameValuePair("diastolic", "2"));
+	    	    nameValuePairs.add(new BasicNameValuePair("pulse", "3"));
+	    	    nameValuePairs.add(new BasicNameValuePair("year", "4"));
+	    	    nameValuePairs.add(new BasicNameValuePair("month", "5"));
+	    	    nameValuePairs.add(new BasicNameValuePair("day", "6"));
+	    	    nameValuePairs.add(new BasicNameValuePair("hour", "7"));
+	    	    nameValuePairs.add(new BasicNameValuePair("minute", "8"));
+	    	    
+	    	    httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+	    	    */
+	    	    httppost.setEntity(s);
+
+	    	    // Execute HTTP Post Request
+	    	    HttpResponse response = httpclient.execute(httppost);
+	    	    //logging down the response from Mongo Lab
+	    	    byte[] buffer = new byte[200];
+	    	    response.getEntity().getContent().read(buffer);
+	    	    String str = new String(buffer, "UTF8");
+	    	    Log.d(TAG,str);
+
+	    	} catch (ClientProtocolException e) {
+	    		Log.d(TAG, e.getMessage());
+	    	} catch (IOException e) {
+	    		Log.d(TAG, e.getMessage());
+	    	}
+			
+			return null;
+		}
+		
+		protected void onPostExecute(String result) {
+	        Log.d(TAG, "onPostExecute : "+result);
+	     }
+    	
     }
 
     /**

@@ -63,6 +63,7 @@ public class BluetoothHDPService extends Service {
 
     byte[] sysId;
     public static String result = "No measurement data to display now.";
+    public static String[] results = new String[8];
     
     public static final int RESULT_OK = 0;
     public static final int RESULT_FAIL = -1;
@@ -372,8 +373,8 @@ public class BluetoothHDPService extends Service {
                                 String year, month, day, hour, minute;
                                 byte byte2[] = new byte[2];
                                 byte byte1[] = new byte[1];
-                                systolic = data[45];
-                                diastolic = data[47];
+                                systolic = (data[45]>=0?data[45]:256+data[45]);  //in case overflow > 127
+                                diastolic = (data[47]>=0?data[47]:256+data[47]);
                                 pulse = data[63];
                                 byte2[0] = data[50]; byte2[1] = data[51];
                                 year = bytesToHex(byte2);
@@ -388,6 +389,8 @@ public class BluetoothHDPService extends Service {
                                 result = "*****the measured data are: Systolic = "+systolic+", Diastolic = "
                                 		+diastolic+", pulse = "+pulse+" at "+year+"-"+month+"-"+day+" "
                                 		+hour+":"+minute+". *****";
+                                results[0]=systolic+""; results[1]=diastolic+"";results[2]=pulse+"";results[3]=year;
+                                results[4]=month;results[5]=day;results[6]=hour;results[7]=minute;
                                 Log.d(TAG, result);
                                 sendMessage(SHOW_RESULT, 0);
                                 
