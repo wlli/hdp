@@ -176,9 +176,9 @@ public class BluetoothHDPService extends Service {
                 Secure.ANDROID_ID); 
         Log.d(TAG, "@@@@@System-id = "+android_id);
         sysId = new byte[8];
-        this.convertSystemId(sysId, android_id);
-        String systemId2 = bytesToHex(sysId);
-        Log.d(TAG, "@@@@@System-id2 = "+systemId2);
+        //this.convertSystemId(sysId, android_id);
+        //String systemId2 = bytesToHex(sysId);
+        //Log.d(TAG, "@@@@@System-id2 = "+systemId2);
     }
 
     @Override
@@ -527,8 +527,10 @@ public class BluetoothHDPService extends Service {
                                                         (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                                                         (byte) 0x80, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                                                         (byte) 0x00, (byte) 0x08,  		//bt add for phone, can be automate in the future
-                                                        sysId[0], sysId[1], sysId[2], sysId[3], 
-                                                        sysId[4], sysId[5], sysId[6], sysId[7],
+                                                        //sysId[0], sysId[1], sysId[2], sysId[3], 
+                                                        //sysId[4], sysId[5], sysId[6], sysId[7],
+                                                        (byte) 0x01, (byte) 0x04,(byte) 0x01, (byte) 0x04,
+                                                        (byte) 0x02, (byte) 0x03,(byte) 0x01, (byte) 0x04,
                                                         (byte) 0x00, (byte) 0x00,
                                                         (byte) 0x00, (byte) 0x00,
                                                         (byte) 0x00, (byte) 0x00, 
